@@ -2,26 +2,36 @@ from dash import Dash, html, ctx, Patch
 import layout.Funcs.network as network, layout.Funcs.subscriber as subscriber
 from dash.dependencies import Input, Output, State
 from layout.Funcs.MIRstatus import getBattery, timeRemaining, stateID, getError, misText
-import layout.Funcs.shellyGateControl as sgc 
+import layout.Funcs.rosDiagnostics as rosDiagnostics
 import layout.Funcs.missions as missions
 import layout.Funcs.basicFunctions as basicFunctions
 import numpy as np
 import layout.Funcs.API.APImir as APImir
 import layout.Funcs.networkMap as networkMap
 import layout.Funcs.defs as defs
-import layout.Funcs.rosDiagnostics as ros
+import layout.Funcs.rosDiagnostics as rosDiagnostics
+import layout.Funcs.rosStatus as rosStatus
+import layout.Funcs.rosAMCL as rosAMCL
 import pandas as pd
 import time
+from shapely.geometry import Point, Polygon
+import json
 import plotly.express as px
 import csv
 import plotly.graph_objects as go
 from scipy.ndimage import gaussian_filter
 import layout.Funcs.basicFunctions as bf
 import dash_bootstrap_components as dbc
-
+import threading
 from layout.layout2 import layout2 
 import layout.layout2 as layoutfile
 
+foxglove_state = {
+    "connected": False,
+    "channels": {},
+    "latest": {},
+}
+foxglove_lock = threading.Lock()
 
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -70,86 +80,19 @@ colourscale = px.colors.named_colorscales()
 @app.callback(
     Output('battery', 'children'),
     Output('time', 'children'),
+    Output('robotLocation', 'children'),
     Input('interval-component','n_intervals')
 )
-def updateBattery(n):
-    battery = getBattery()
-    hrs, min, sec = timeRemaining()    
-    if misText == 'Charging... Waiting for new mission...':
-        missions.charging()
+def updateStats(n):
+    battery, isCharging, hrs, mins, secs = rosDiagnostics.getBattery()
+    rl = rosAMCL.getLocation()
     return(
         html.P("Battery: {}%".format(battery)),
-        html.P("Time remaining: {}hrs, {}mins, {}secs".format(hrs, min, sec)),
+        html.P("Time remaining: {}hrs, {}mins, {}secs".format(hrs, mins, secs)),
+        html.P(f"- Robot is in Bay {rl}")
+        #html.P("Charging?:{}".format(isCharging))
        )
-
-@app.callback(
-    Output('state','children'),
-    Output('pistonState', 'children'),
-    Output('gate','children'),
-    Input('interval-component','n_intervals')
-)
-def updatemisQue(n):
-    state = stateID()
-
-    with open('layout/assets/data.txt', 'rt') as f:
-        x = f.read()
-        f.close()
-        if '0' in x:
-            pistonState = 'Pistons down'
-        if '1' in x:
-            pistonState = 'Pistons up'
-    #insert gate logic
-    sgc.shellyState()
-
     
-    with open('layout/assets/gateStat.txt', 'rt') as f:
-        x = f.read()
-        f.close()
-        if '0' in x:
-            gate = 'Gate closed'
-        if '1' in x:
-            gate = 'Gate open'
-    return state, pistonState, gate  #, text
-
-@app.callback(
-    Output('pistonState','style'),
-    Input('interval-component','n_intervals')
-)
-
-def updatePiston(n):
-    pistonStyle=Patch()
-
-    with open('layout/assets/pistonStat.txt', 'rt') as f:
-        p = f.read()
-        #f.close()
-    if p == '0':
-        piston='#AF1D18'
-        pistonStyle['backgroundColor']= piston
-    elif p == '1':
-        piston ='#8FC78F'
-        pistonStyle['backgroundColor']= piston
-
-    return pistonStyle
-
-@app.callback(
-    Output('gate','style'),
-    Input('interval-component','n_intervals')
-)
-
-def updatePiston(n):
-    gateStyle=Patch()
-
-    with open('layout/assets/gateStat.txt', 'rt') as f:
-        g = f.read()
-        f.close()
-    if g == '0':
-        gate='#AF1D18'
-        gateStyle['backgroundColor']=gate
-    elif g == '1':
-        gate='#8FC78F'
-        gateStyle['backgroundColor']=gate
-
-    return gateStyle
 
 
 @app.callback( #buttons
@@ -249,7 +192,7 @@ def dropdown(n_clicks, value):
     Input('interval-component','n_intervals')
 )
 def networkinfo(n):
-    signallevel = ros.getsignal()
+    signallevel = rosDiagnostics.getsignal()
     freq = network.freq()
     return(
         html.P(f'Strength: -{signallevel}'),
@@ -306,6 +249,8 @@ def errors(n):
     else:
         return html.P(errors)
 #'''
+
+
 @app.callback(
     Output('plot', 'figure'),
     Input('interval-comp2', 'n_intervals')
@@ -415,7 +360,88 @@ def graph(n):
     
     return fig
 
+@app.callback(
+    Output('map', 'figure'),
+    Input('interval-comp2', 'n_intervals')
+)
+def updateMap(n):
+    fig2 = go.Figure()
+    x_min, x_max = 30.0, 75.0
+    y_min, y_max = 25.0, 65.0
 
+    xs = np.linspace(x_min, x_max, 100)
+    ys = np.linspace(y_min, y_max, 100)
+    xx, yy = np.meshgrid(xs, ys)
+
+    fig2.add_trace(go.Scatter(
+        x=xx.flatten(),
+        y=yy.flatten(),
+        mode='markers',
+        marker=dict(size=10, opacity=0),
+        hoverinfo='none',   # <-- was 'skip'; 'skip' also disables click events
+        showlegend=False,
+    ))
+
+    fig2.update_layout(
+        plot_bgcolor='white',
+        xaxis_title='X coordinate',
+        yaxis_title='Y coordinate',
+        uirevision='constant',
+        width=600,
+        height=600,
+        margin=dict(l=60, r=20, t=20, b=60),
+        xaxis=dict(
+            range=[x_min, x_max],
+            constrain='domain',
+        ),
+        yaxis=dict(
+            range=[y_min, y_max],
+            scaleanchor="x",
+            scaleratio=1,
+            constrain='domain',
+        ),
+    )
+
+    fig2.add_layout_image(
+        dict(
+            source="/assets/IMRsiteMap.png",
+            xref="x",
+            yref="y",
+            x=32.2,
+            y=62.45,
+            sizex=42.3,
+            sizey=38.45,
+            opacity=0.4,
+            layer="below",
+        )
+    )
+
+    return fig2
+
+
+@app.callback(
+    Output('click-output', 'children'),
+    Input('map', 'clickData')
+)
+def mapClick(clickData):
+    perimeter = [(31.45,59.9), (31.15,26.9), (62.25,27.8), (61.85, 46.5),
+                 (73.45, 46.55), (73.15,62.35), (69,62.3), (69.25,50.05),
+                 (61.6,50.05), (61.65,59.95), (31.45,59.9)]
+    validPerimeter = Polygon(perimeter)
+
+    if clickData is None:
+        return "Click a position to send a nav goal"
+
+    point = clickData['points'][0]   # <-- was clickData['goal'][0]
+    x = point['x']
+    y = point['y']
+
+    if validPerimeter.contains(Point(x, y)):
+        print(f'Goal: x = {x}, y = {y}')
+        return f"Goal: x = {x:.2f}, y = {y:.2f}"
+    else:
+        return "Invalid position"
+    
 if __name__ == '__main__':
-    #app.run(debug=True)
-    app.run(host='0.0.0.0', port=8055, debug=False) #run this for use over wifi
+    app.run(debug=True)
+    #app.run(host='0.0.0.0', port=8055, debug=False) #run this for use over wifi

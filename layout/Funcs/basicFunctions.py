@@ -1,9 +1,8 @@
 '''import API.APImir as APImir, shellyGateControl as shellyGateControl, defs as defs, MIRstatus as MIRstatus
 import time
 from tuya_relay_python import connect_to_relay'''
-import layout.Funcs.API.APImir as APImir, layout.Funcs.shellyGateControl as shellyGateControl, layout.Funcs.defs as defs, layout.Funcs.MIRstatus as MIRstatus
+import layout.Funcs.API.APImir as APImir, layout.Funcs.defs as defs, layout.Funcs.MIRstatus as MIRstatus
 import time
-from layout.Funcs.tuya_relay_python import connect_to_relay
 
 
 def clearqueue():
@@ -46,15 +45,6 @@ def disToTarget():
     statusData = APImir.mirRequest("GET", "/status") 
     return round(statusData.get("distance_to_next_target"))
 
-def openGate():
-    while disToTarget() > 4 or disToTarget() == 0:
-        time.sleep(1)
-        #print(disToTarget())     
-
-        if disToTarget() < 4:
-            break
-    print(f"{disToTarget()}m away, Opening gates")
-    return shellyGateControl.open()
 
 def checkPLC1():
     plc1 = APImir.mirRequest('GET','/registers/1')
@@ -65,7 +55,7 @@ def setPLC1():
     doMission(defs.plc12)
     return
 
-def pickUp():
+'''def pickUp():
     while checkPLC1() == 0  :
         time.sleep(1)  
 
@@ -98,13 +88,13 @@ def pistonUp(): #tells dashboard status of pistons
 def pistonDown():
     with open('layout/assets/pistonStat.txt', 'wt') as f:
         f.write('0')  
-    return
+    return'''
 
 
 #################################################################    
 #BAY 1  old      
 #################################################################  
-def pickUpSequenceB1():
+'''def pickUpSequenceB1():
     doMission(defs.dockToShelfB1)
     doMission(defs.footprintWithShelf)
     pickUp()
@@ -124,11 +114,11 @@ def depositSequenceB1():
         if checkPLC1() == 2:
             #time.sleep(5)
             doMission(defs.leaveDock)
-            return
+            return'''
 #################################################################    
 #BAY 2  old
 #################################################################  
-def pickUpSequenceB2():
+'''def pickUpSequenceB2():
     doMission(defs.dockToShelfB2)
     doMission(defs.footprintWithShelf)
     pickUp()
@@ -148,16 +138,5 @@ def depositSequenceB2():
         if checkPLC1() == 2:
             time.sleep(2)
             doMission(defs.leaveDock)
-            return
-
-
-def apprGate1():
-    doMission(defs.apprG1)
-    shellyGateControl.openGate()
-    return
-
-def exitGate1():
-    doMission(defs.ExitGate1)
-    shellyGateControl.openGate()
-    return
+            return'''
 

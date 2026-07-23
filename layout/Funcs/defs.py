@@ -1,13 +1,18 @@
 #from tuya_relay_python import connect_to_relay 
-from layout.Funcs.tuya_relay_python import connect_to_relay 
+#from layout.Funcs.tuya_relay_python import connect_to_relay 
 import layout.Funcs.basicFunctions as basicFunctions
 import time
 #######################################################################
 #network
 #######################################################################
 mul_lab = "38c554e6-b68b-43cd-b4a1-b7f7cbc714c5"
-
+rosIP = "192.168.30.25" #"192.168.30.116"
 #map
+WS_URL = "ws://192.168.30.25:8765"  # your Foxglove websocket server
+SUBPROTOCOL = "foxglove.websocket.v1"
+
+
+
 allBays = "bd07dd40-7461-11f1-80be-f44d306dcb63"
 #######################################################################
 #missions
@@ -39,13 +44,4 @@ plc12 = "b41361fe-7477-11f1-9f07-f44d306dcb63"
 plc2add = "d999e717-7477-11f1-9f07-f44d306dcb63"
 plc2reset = "ed573610-7477-11f1-9f07-f44d306dcb63"
 
-def pick():
-    connect_to_relay.pick()
-    basicFunctions.pistonUp()
-    return
-    
-def place():
-    connect_to_relay.place()
-    basicFunctions.pistonDown()
 
-    return

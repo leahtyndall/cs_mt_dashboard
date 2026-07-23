@@ -1,9 +1,6 @@
-from layout.Funcs.basicFunctions import doMission, checkPLC1, pickUp, placeDown, apprGate1, exitGate1
+from layout.Funcs.basicFunctions import doMission, checkPLC1
 import layout.Funcs.defs as defs
-from layout.Funcs.API import APImir, APIshelly
-'''from basicFunctions import doMission, checkPLC1, pickUp, placeDown, enterGate1, exitGate1
-import defs as defs
-from API import APImir, APIshelly'''
+from layout.Funcs.API import APImir
 import time
 import json
 import requests
@@ -15,7 +12,7 @@ def charge():
     doMission(defs.chargingStation)
     charging()
     return 
-
+'''
 def cfb1():#collect shelf from bay 1
     print('adding to plc2')
     check()
@@ -62,7 +59,7 @@ def cfb2(): #collect from bay2
     print('leaving')
     doMission(defs.leaveDock)   
     doMission(defs.plc2add)  
-    return
+    return'''
 
 def da(): #testing for now
     check()
@@ -121,7 +118,7 @@ def marathonNP(): #no pickup
         bay3NP()
         x = x+1
     return
-
+'''
 def marathon():
     i = 0 #laps
     j = 1
@@ -165,7 +162,7 @@ def marathon():
             doMission(defs.plc12)
             doMission(defs.leaveDock)
             doMission(defs.plc2reset)
-    return
+    return'''
 #-------------------------------------
 
 def clearQ():
@@ -179,8 +176,6 @@ def checkPLC2():
 #----------------BAY 2 logic ------------------------------------
 
 def b2LEFT(): #deposit left bay2
-    apprGate1()
-    doMission(defs.enterG1())
     doMission(defs.Desk1)
     inc() #tells program mir is intside gate, & will need to run exit sequence to carry out next mission
     return 
@@ -193,11 +188,8 @@ def check(): #checks if mir is inside gate
         if '2' in x:
             print('Leaving charging station.')
             doMission(defs.leaveCharger) #reverses out of dock to avoid spinning & hitting sides
-            dec() #reset 
         if '1' in x:
             print('In gate, executing exit mission.')
-            exitGate1()
-            dec() #reset to show not in g1          
         if '0' in x:
             print('Not in gate, continuing.')
         return

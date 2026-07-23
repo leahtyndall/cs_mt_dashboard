@@ -2,6 +2,7 @@ from dash import dcc
 import pandas as pd
 import plotly.express as px
 from layout.Funcs.API import APImir
+import layout.Funcs.rosAMCL as rosAMCL
 import layout.Funcs.rosDiagnostics as ros
 import csv
 import time
@@ -17,10 +18,9 @@ colours = {
 
 def getData():
     #print('getting data')
-    coords = APImir.mirRequest('GET', '/status').get('position')
+    #coords = APImir.mirRequest('GET', '/status').get('position')
     state = APImir.mirRequest('GET', '/status').get('state_text')
-    x= coords.get('x')
-    y= coords.get('y')
+    px, py, pz = rosAMCL.getPos()
 
     signallevel = ros.getsignal()
     #print(x,y) 
@@ -28,7 +28,7 @@ def getData():
     fields=['x','y','signallevel']
     data = [
         #['x','y','strength'],
-        {'x':x,'y':y,'signallevel':signallevel}
+        {'x':px,'y':py,'signallevel':signallevel}
     ]
     if state != 'Pause':
         with open('layout/assets/networkData.csv', mode = 'at', newline='') as d:

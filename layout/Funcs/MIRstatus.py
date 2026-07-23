@@ -6,7 +6,7 @@ import shellyGateControl as shellyGateControl'''
 import layout.Funcs.basicFunctions as basicFunctions
 from layout.Funcs.API import APImir
 import layout.Funcs.defs as defs
-import layout.Funcs.shellyGateControl as shellyGateControl
+import layout.Funcs.rosDiagnostics as rosDiagnostics
 import time, json
 import pandas as pd
 import base64
@@ -16,14 +16,11 @@ import base64
 
 def status():
     
-    dataCache = APImir.mirRequest("GET", "/status") 
-    
+    return    
 
 def getBattery():
-    statusData = APImir.mirRequest("GET", "/status")
-    battery = round(statusData.get("battery_percentage"))
-    charging = False
-    if battery < 30 & charging == False:
+    battery, isCharging, hrs, mins, secs = rosDiagnostics.getBattery()
+    if battery < 30 & isCharging == False:
         charging = True
         autoCharge()
     return battery

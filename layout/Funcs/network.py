@@ -1,4 +1,4 @@
-from layout.Funcs.API import APIshelly
+#from layout.Funcs.API import APIshelly
 #from tuya_relay_python import connect_to_relay
 import time
 from selenium import webdriver
@@ -46,9 +46,9 @@ def ping(): #status response times
     end = time.time()
     
     latency_ms = (end - start) * 1000
-    latency_ms = round(latency_ms,2)
+    latency_ms2 = round(latency_ms,2)
     
-    return latency_ms, response.status_code
+    return latency_ms2, response.status_code
 
 def taskResponse():
     start = time.time()

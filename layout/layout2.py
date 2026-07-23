@@ -1,19 +1,23 @@
 from dash import Dash, html, dcc
 from dash.dependencies import Input, Output
-import layout.Funcs.shellyGateControl as sgc
 import dash_bootstrap_components as dbc
+import layout.Funcs.defs as defs
+import websockets
 import dash_player
+from shapely.geometry import Point, Polygon
 import plotly.graph_objects as go
 import layout.Funcs.missions as mis
 import pandas as pd
 
 COLOURS = { #CHANGE TO VODAFONE THEME + ADD LOGOS
-    'red':"#AF1D18",
+    'red':"#A9002A",
     'white': "#FFFFFF",
-    'backgnd': "#EBEBEB",
-    'black': "#1A1A1A",
-    'green': '#8FC78F',
-    'orange': "#E2870F",
+    'backgnd': "#C0C0C0",
+    'black':'#333333',
+    'blue': "#005172",
+    'green': '#136C5C',
+    'yellow': "#C49824",
+    'purple': '#674F71'
     #'red': "#C52620"
 }
 def updateP():
@@ -52,7 +56,7 @@ layout2 = html.Div(
                 dbc.Container([  
                     dbc.Row([#title bar - row 1
                         dbc.Col(html.Div([ #r1c1
-                            html.H1('MiR100',
+                            html.H1('Mobile Robot',
                                 style={
                                     'color': COLOURS['black'],
                                     'width':'100%',
@@ -71,8 +75,8 @@ layout2 = html.Div(
                                     'margin':'0px'})
                         ]), width = 2),               
                         dbc.Col(html.Div([ #r1c3
-                            html.Img(src='assets/vodafone.png',
-                                style ={'width': '60%',
+                            html.Img(src='assets/coresense-logo.png',
+                                style ={'width': '40%',
                                     'verticalAlign':'top', 
                                     'float':'right',
                                     'margin':'0px'})
@@ -97,7 +101,7 @@ layout2 = html.Div(
                                         style = {
                                             'color': COLOURS['white'],
                                             'padding':'8px',
-                                            'backgroundColor': COLOURS['red'],
+                                            'backgroundColor': COLOURS['green'],
                                             'borderRadius':'10px',
                                             'margin':'5px',
                                             'verticalAlign':'top',
@@ -134,68 +138,27 @@ layout2 = html.Div(
                                                 }
                                             ),
                                             #html.P('Executing: '),
-                                            html.P(id = 'state')],
-                                        
-                                                '''style={
-                                                    'color': COLOURS['black'],
-                                                    'width':'100%',
-                                                    'padding':'10px',
-                                                    'backgroundColor': COLOURS['white'],
-                                                    'borderRadius':'10px',
-                                                    'margin':'10px',
-                                                    'verticalAlign':'top',
-                                                    'display': 'inline-block',
-                                                    'height': '150px',
-                                                    'box-shadow':'5px 5px 5px grey'
-                                                    }'''
+                                            #html.P(id = 'status'),
+                                            html.Div(id ='robotLocation')],
+                                            style={
+                                                'color': COLOURS['black'],
+                                                'width':'100%',
+                                                'padding':'10px',
+                                                'backgroundColor': COLOURS['white'],
+                                                'borderRadius':'10px',
+                                                'margin':'10px',
+                                                'verticalAlign':'top',
+                                                'display': 'inline-block',
+                                                'height': '150px',
+                                                'box-shadow':'5px 5px 5px grey'
+                                                }
+
                                         ))
                                     ]),
-                                    dbc.Row([
-                                        dbc.Col(html.Div([
-                                            html.P('Piston',
-                                                id = 'pistonState',
-                                            style={
-                                                'color': COLOURS['white'],
-                                                'width':'90%',
-                                                'padding':'10px',
-                                                'backgroundColor':'#AF1D18',
-                                                'borderRadius':'10px',
-                                                'margin':'5px',
-                                                'verticalAlign':'center',
-                                                'height':'30px',
-                                                'fontSize': '12px'
-                                            })
-                                           
-                                        ])),
-                                        dbc.Col(html.Div([     
-                                            html.P('Gate',
-                                                id = 'gate',
-                                            style={
-                                                'color': COLOURS['white'],
-                                                'width':'90%',
-                                                'padding':'10px',
-                                                'backgroundColor': '#AF1D18',
-                                                'borderRadius':'10px',
-                                                'margin':'5px',
-                                                'verticalAlign':'center',
-                                                'height':'30px',
-                                                'fontSize': '12px'   
-                                            })
-                                        ]))
-                                    ])
+
                                 ],
-                                style={
-                                                    'color': COLOURS['black'],
-                                                    'width':'100%',
-                                                    'padding':'10px',
-                                                    'backgroundColor': COLOURS['white'],
-                                                    'borderRadius':'10px',
-                                                    'margin':'10px',
-                                                    'verticalAlign':'top',
-                                                    'display': 'inline-block',
-                                                    'height': '150px',
-                                                    'box-shadow':'5px 5px 5px grey'
-                                                    })
+                                        
+                                )
                             ]),  
 
                             dbc.Row([ #R2c1r2 {middle}
@@ -204,7 +167,7 @@ layout2 = html.Div(
                                         style={
                                             'color': COLOURS['white'],
                                             'padding':'8px',
-                                            'backgroundColor': COLOURS['red'],
+                                            'backgroundColor': COLOURS['yellow'],
                                             'borderRadius':'10px',
                                             'margin':'5px',
                                             'verticalAlign':'top'
@@ -251,7 +214,7 @@ layout2 = html.Div(
                                         style={
                                             'color': COLOURS['white'],
                                             'padding':'8px',
-                                            'backgroundColor': COLOURS['red'],
+                                            'backgroundColor': COLOURS['blue'],
                                             'borderRadius':'10px',
                                             'margin':'5px',
                                             'verticalAlign':'top'
@@ -282,7 +245,7 @@ layout2 = html.Div(
                                         style={
                                             'color': COLOURS['white'],
                                             'padding':'8px',
-                                            'backgroundColor': COLOURS['red'],
+                                            'backgroundColor': COLOURS['green'],
                                             'borderRadius':'10px',
                                             'margin':'5px',
                                             'verticalAlign':'top'
@@ -324,7 +287,7 @@ layout2 = html.Div(
                                     style={'width': '100%',
                                         'width': '100%',
                                         'padding':'10px',
-                                        'backgroundColor': COLOURS['red'],
+                                        'backgroundColor': COLOURS['purple'],
                                         'borderRadius':'10px',
                                         'margin':'10px',
                                         'verticalAlign':'top',
@@ -343,7 +306,7 @@ layout2 = html.Div(
                 dbc.Container([  
                     dbc.Row([#title bar - row 1
                         dbc.Col(html.Div([ #r1c1
-                            html.H1('MiR100',
+                            html.H1('Mobile Robot',
                                 style={
                                     'color': COLOURS['black'],
                                     'width':'100%',
@@ -362,8 +325,8 @@ layout2 = html.Div(
                                     'margin':'0px'})
                         ]), width = 2),               
                         dbc.Col(html.Div([ #r1c3
-                            html.Img(src='assets/vodafone.png',
-                                style ={'width': '60%',
+                            html.Img(src='assets/coresense-logo.png',
+                                style ={'width': '40%',
                                     'verticalAlign':'top', 
                                     'float':'right',
                                     'margin':'0px'})
@@ -419,7 +382,7 @@ layout2 = html.Div(
                                         style={
                                             'color': COLOURS['white'],
                                             'padding':'8px',
-                                            'backgroundColor': COLOURS['red'],
+                                            'backgroundColor': COLOURS['blue'],
                                             'borderRadius':'10px',
                                             'margin':'5px',
                                             'verticalAlign':'top',
@@ -451,7 +414,7 @@ layout2 = html.Div(
                                         style={
                                             'color': COLOURS['white'],
                                             'padding':'8px',
-                                            'backgroundColor': COLOURS['red'],
+                                            'backgroundColor': COLOURS['green'],
                                             'borderRadius':'10px',
                                             'margin':'5px',
                                             'verticalAlign':'top',
@@ -482,7 +445,7 @@ layout2 = html.Div(
                                         style={
                                             'color': COLOURS['white'],
                                             'padding':'8px',
-                                            'backgroundColor': COLOURS['red'],
+                                            'backgroundColor': COLOURS['yellow'],
                                             'borderRadius':'10px',
                                             'margin':'5px',
                                             'verticalAlign':'top',
@@ -530,7 +493,7 @@ layout2 = html.Div(
                 dbc.Container([
                     dbc.Row([#title bar - row 1
                         dbc.Col(html.Div([ #r1c1
-                            html.H1('MiR100',
+                            html.H1('Mobile Robot',
                                 style={
                                     'color': COLOURS['black'],
                                     'width':'100%',
@@ -549,8 +512,8 @@ layout2 = html.Div(
                                     'margin':'0px'})
                         ]), width = 2),               
                         dbc.Col(html.Div([ #r1c3
-                            html.Img(src='assets/vodafone.png',
-                                style ={'width': '60%',
+                            html.Img(src='assets/coresense-logo.png',
+                                style ={'width': '40%',
                                     'verticalAlign':'top', 
                                     'float':'right',
                                     'margin':'0px'})
@@ -583,14 +546,7 @@ layout2 = html.Div(
                                             #'verticalAlign':'top',
                                             'height':'50px'}),
                                     #html.P('Executing: '),
-                                    html.P('This project demonstrates the use of mobile robots to automate delivery tasks '
-                                    'in an industrial/manufacturing enviornment. ' \
-                                    'Our MiR100 robot is equipped with an automated shelf pickup system, and communication' \
-                                    ' with external gates, allowing it to deliver cargo between bays, with no human interaction. ' \
-                                    'A user simply orders the robot to the desired location via its custom dashboard, and its ' \
-                                    'programming handles the rest. The Dashboard brings all of the robots information into one ' \
-                                    'easily accessible location. As well as control, it provides real time monitoring of the MiR, ' \
-                                    'including - status updates, network speeds and an egocentric live-stream. ')],
+                                    html.P('')],
                                     #html.P(id = '')], 
                                         style={
                                             'color': COLOURS['black'],
@@ -618,18 +574,12 @@ layout2 = html.Div(
                                             'width':'12%',
                                             'color': COLOURS['white'],
                                             'padding':'8px',
-                                            'backgroundColor': COLOURS['red'],
+                                            'backgroundColor': COLOURS['yellow'],
                                             'borderRadius':'10px',
                                             'margin':'10px',
                                             'verticalAlign':'top',
                                             'height':'50px'}),
-                                    html.P('The main objective of this project is to showcase a precise benchmark comparison between ' \
-                                    'telecommunication speeds over Wi-Fi networks and Vodafones 5G Mobile Private Network. With ' \
-                                    'autonomous robots, having fast network speeds is the key to automation - especially in a busy ' \
-                                    'working enviornement where real-time feedback is essential. Standard Wi-Fi networks alone may not keep ' \
-                                    'up with the robots demands. By gathering latency and bandwidth data from both Wi-Fi and Vodafones 5G ' \
-                                    'MPN, we will measure the definitive contrast of the twos capabilties.' \
-                                    )],
+                                    html.P('')],
                                         style={
                                             'color': COLOURS['black'],
                                             'width':'100%',
@@ -656,15 +606,12 @@ layout2 = html.Div(
                                             'width':'31%',
                                             'color': COLOURS['white'],
                                             'padding':'8px',
-                                            'backgroundColor': COLOURS['red'],
+                                            'backgroundColor': COLOURS['green'],
                                             'borderRadius':'10px',
                                             'margin':'10px',
                                             'verticalAlign':'top',
                                             'height':'50px'}),
-                                    html.P('The demo gives in insight as to what robot - human interaction could look like in the ' \
-                                           'workplace. When implemented correctly, and tailored to the specific ask, automation can ' \
-                                           'cause an exponetial increase in efficiency. However - it all goes back to the question - ' \
-                                           'what network to best to manage this technology?')],
+                                    html.P('')],
                                         style={
                                             'color': COLOURS['black'],
                                             'width':'100%',
@@ -703,11 +650,11 @@ layout2 = html.Div(
 
                 ]),
                 ]),
-                dcc.Tab(label='Map 🗺️', children=[
+                dcc.Tab(label='Rviz 🗺️', children=[
                 dbc.Container([  
                     dbc.Row([#title bar - row 1
                         dbc.Col(html.Div([ #r1c1
-                            html.H1('MiR100',
+                            html.H1('Mobile Robot',
                                 style={
                                     'color': COLOURS['black'],
                                     'width':'100%',
@@ -726,8 +673,8 @@ layout2 = html.Div(
                                     'margin':'0px'})
                         ]), width = 2),               
                         dbc.Col(html.Div([ #r1c3
-                            html.Img(src='assets/vodafone.png',
-                                style ={'width': '60%',
+                            html.Img(src='assets/coresense-logo.png',
+                                style ={'width': '40%',
                                     'verticalAlign':'top', 
                                     'float':'right',
                                     'margin':'0px'})
@@ -743,7 +690,16 @@ layout2 = html.Div(
                     #################################################################    
                     #       MAP BELOW HERE          
                     #################################################################      
-                    
+                    dbc.Row([    
+                        dbc.Col(
+                            html.Div([
+                                dcc.Graph(id='map', 
+                                          style={'width': '600px', 'height': '600px'}),
+                                html.Div(id='click-output')],
+                                
+                            )
+                        )
+                    ])
 
                     ]),
                 ]),
