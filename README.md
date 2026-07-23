@@ -11,7 +11,7 @@ Create directory & virtual enviornment & install
 mkdir cs_dashboard && cd cs_dashboard
 python3 -m venv venv
 source venv/bin/activate
-pip install numpy dash dash-bootstrap-components pandas plotly requests tinytuya websocket-client scipy
+pip install numpy dash dash-bootstrap-components pandas plotly requests tinytuya websocket-client scipy shapely
 ```
 
 
